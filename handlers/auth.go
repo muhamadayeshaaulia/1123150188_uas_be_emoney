@@ -248,8 +248,10 @@ func (h *AuthHandler) RegisterWithOTP(c *gin.Context) {
 	name, _ := token.Claims["name"].(string)
 
 	var user models.User
+	action := "login"
 	result := h.db.WithContext(ctx).Where("firebase_uid = ?", token.UID).First(&user)
 	if result.Error == gorm.ErrRecordNotFound {
+		action = "register"
 		user = models.User{
 			FirebaseUID:   token.UID,
 			Email:         email,
@@ -274,7 +276,7 @@ func (h *AuthHandler) RegisterWithOTP(c *gin.Context) {
 		return
 	}
 
-	if err := h.otpSvc.SendEmailOTP(ctx, &user); err != nil {
+	if err := h.otpSvc.SendEmailOTP(ctx, &user, action); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"message": "Gagal mengirim OTP ke email: " + err.Error(),

@@ -24,6 +24,10 @@ type ConfirmOTPRequest struct {
 	OTPType string `json:"otp_type" binding:"required"` // "firebase" | "email"
 }
 
+type SendEmailOTPRequest struct {
+	Action string `json:"action"`
+}
+
 type VerifyTOTPRequest struct {
 	Code string `json:"code" binding:"required"`
 }
@@ -73,7 +77,10 @@ func (h *OTPHandler) SendEmailOTP(c *gin.Context) {
 		return
 	}
 
-	if err := h.otpSvc.SendEmailOTP(c.Request.Context(), user); err != nil {
+	var req SendEmailOTPRequest
+	_ = c.ShouldBindJSON(&req) // Ignore err as Action is optional
+
+	if err := h.otpSvc.SendEmailOTP(c.Request.Context(), user, req.Action); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"message": "Gagal mengirim OTP via email: " + err.Error(),

@@ -112,8 +112,7 @@ func (s *OTPService) SendFirebaseOTP(ctx context.Context, user *models.User) err
 	return err
 }
 
-// SendEmailOTP sends OTP via email
-func (s *OTPService) SendEmailOTP(ctx context.Context, user *models.User) error {
+func (s *OTPService) SendEmailOTP(ctx context.Context, user *models.User, action string) error {
 	code, err := s.GenerateCode()
 	if err != nil {
 		return fmt.Errorf("generate otp: %w", err)
@@ -123,6 +122,18 @@ func (s *OTPService) SendEmailOTP(ctx context.Context, user *models.User) error 
 		return fmt.Errorf("store otp: %w", err)
 	}
 
+	var actionText string
+	switch action {
+	case "register":
+		actionText = "menyelesaikan pendaftaran (registrasi) akun Anda"
+	case "login":
+		actionText = "melanjutkan proses Login ke akun Anda"
+	case "activation":
+		actionText = "mengaktifkan fitur Login dengan OTP (2FA)"
+	default:
+		actionText = "melanjutkan transaksi Anda"
+	}
+
 	subject := "Kode OTP E-Money"
 	body := fmt.Sprintf(`
 <html>
@@ -130,7 +141,7 @@ func (s *OTPService) SendEmailOTP(ctx context.Context, user *models.User) error 
   <div style="background: #f0f4ff; padding: 30px; border-radius: 10px;">
     <h2 style="color: #333;">Kode OTP E-Money</h2>
     <p>Halo <strong>%s</strong>,</p>
-    <p>Gunakan kode OTP berikut untuk melanjutkan transaksi Anda:</p>
+    <p>Gunakan kode OTP berikut untuk %s:</p>
     <div style="background: #fff; border: 2px solid #667eea; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
       <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #667eea;">%s</span>
     </div>
@@ -138,7 +149,7 @@ func (s *OTPService) SendEmailOTP(ctx context.Context, user *models.User) error 
     <p style="color: #999; font-size: 12px;">Jangan bagikan kode ini kepada siapapun.</p>
   </div>
 </body>
-</html>`, user.Name, code, s.cfg.OTPExpiryMinutes)
+</html>`, user.Name, actionText, code, s.cfg.OTPExpiryMinutes)
 
 	return s.emailSvc.SendHTML(user.Email, subject, body)
 }
