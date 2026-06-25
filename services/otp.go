@@ -130,6 +130,8 @@ func (s *OTPService) SendEmailOTP(ctx context.Context, user *models.User, action
 		actionText = "melanjutkan proses Login ke akun Anda"
 	case "activation":
 		actionText = "mengaktifkan fitur Login dengan OTP (2FA)"
+	case "deactivation":
+		actionText = "menonaktifkan atau mengatur ulang fitur keamanan Anda"
 	default:
 		actionText = "melanjutkan transaksi Anda"
 	}
