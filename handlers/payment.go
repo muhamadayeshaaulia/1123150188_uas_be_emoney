@@ -30,7 +30,8 @@ type TransferRequest struct {
 }
 
 type TopUpRequest struct {
-	Amount float64 `json:"amount" binding:"required,gt=0"`
+	Amount        float64 `json:"amount" binding:"required,gt=0"`
+	PaymentMethod string  `json:"payment_method"`
 }
 
 // GET /v1/account
@@ -112,14 +113,20 @@ func (h *PaymentHandler) TopUp(c *gin.Context) {
 
 		invoiceID := fmt.Sprintf("TOPUP-%d", time.Now().UnixNano()/1e6)
 
+		desc := "Top Up Saldo"
+		if req.PaymentMethod != "" {
+			desc = fmt.Sprintf("Top Up Saldo via %s", req.PaymentMethod)
+		}
+
 		trx = models.Transaction{
 			AccountID:     account.ID,
 			Amount:        req.Amount,
 			TotalAmount:   req.Amount,
 			InvoiceID:     invoiceID,
 			Status:        "SUCCESS",
+			PaymentMethod: req.PaymentMethod,
 			Type:          "credit",
-			Description:   "Top Up Saldo",
+			Description:   desc,
 			BalanceBefore: balanceBefore,
 			BalanceAfter:  account.Balance,
 		}
@@ -138,10 +145,11 @@ func (h *PaymentHandler) TopUp(c *gin.Context) {
 		"success": true,
 		"message": "Top up berhasil",
 		"data": gin.H{
-			"balance":    account.Balance,
-			"amount":     req.Amount,
-			"invoice_id": trx.InvoiceID,
-			"created_at": trx.CreatedAt.Format(time.RFC3339),
+			"balance":        account.Balance,
+			"amount":         req.Amount,
+			"invoice_id":     trx.InvoiceID,
+			"payment_method": trx.PaymentMethod,
+			"created_at":     trx.CreatedAt.Format(time.RFC3339),
 		},
 	})
 }
@@ -256,6 +264,7 @@ func (h *PaymentHandler) Transfer(c *gin.Context) {
 			TotalAmount:   req.Amount,
 			InvoiceID:     invoiceID,
 			Status:        "SUCCESS",
+			PaymentMethod: "Saldo E-Money",
 			Type:          "debit",
 			Description:   desc,
 			BalanceBefore: balanceBefore,
@@ -282,6 +291,7 @@ func (h *PaymentHandler) Transfer(c *gin.Context) {
 			"description":    trx.Description,
 			"balance_before": trx.BalanceBefore,
 			"balance_after":  trx.BalanceAfter,
+			"payment_method": trx.PaymentMethod,
 			"created_at":     trx.CreatedAt.Format(time.RFC3339),
 		},
 	})
