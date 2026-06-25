@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"emoney-2fa/models"
@@ -99,6 +101,7 @@ func (h *PaymentHandler) TopUp(c *gin.Context) {
 		return
 	}
 
+	var trx models.Transaction
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		balanceBefore := account.Balance
 		account.Balance += req.Amount
@@ -107,9 +110,14 @@ func (h *PaymentHandler) TopUp(c *gin.Context) {
 			return err
 		}
 
-		trx := models.Transaction{
+		invoiceID := fmt.Sprintf("TOPUP-%d", time.Now().UnixNano()/1e6)
+
+		trx = models.Transaction{
 			AccountID:     account.ID,
 			Amount:        req.Amount,
+			TotalAmount:   req.Amount,
+			InvoiceID:     invoiceID,
+			Status:        "SUCCESS",
 			Type:          "credit",
 			Description:   "Top Up Saldo",
 			BalanceBefore: balanceBefore,
@@ -130,8 +138,10 @@ func (h *PaymentHandler) TopUp(c *gin.Context) {
 		"success": true,
 		"message": "Top up berhasil",
 		"data": gin.H{
-			"balance": account.Balance,
-			"amount":  req.Amount,
+			"balance":    account.Balance,
+			"amount":     req.Amount,
+			"invoice_id": trx.InvoiceID,
+			"created_at": trx.CreatedAt.Format(time.RFC3339),
 		},
 	})
 }
@@ -227,9 +237,25 @@ func (h *PaymentHandler) Transfer(c *gin.Context) {
 			desc = "Transfer / Pembayaran"
 		}
 
+		// Extract or generate invoice_id
+		invoiceID := ""
+		words := strings.Fields(desc)
+		for _, word := range words {
+			if strings.HasPrefix(word, "INV-") || strings.HasPrefix(word, "TOPUP-") {
+				invoiceID = word
+				break
+			}
+		}
+		if invoiceID == "" {
+			invoiceID = fmt.Sprintf("PAY-%d", time.Now().UnixNano()/1e6)
+		}
+
 		trx = models.Transaction{
 			AccountID:     account.ID,
 			Amount:        req.Amount,
+			TotalAmount:   req.Amount,
+			InvoiceID:     invoiceID,
+			Status:        "SUCCESS",
 			Type:          "debit",
 			Description:   desc,
 			BalanceBefore: balanceBefore,
@@ -251,6 +277,7 @@ func (h *PaymentHandler) Transfer(c *gin.Context) {
 		"message": "Transfer berhasil",
 		"data": gin.H{
 			"transaction_id": trx.ID,
+			"invoice_id":     trx.InvoiceID,
 			"amount":         req.Amount,
 			"description":    trx.Description,
 			"balance_before": trx.BalanceBefore,

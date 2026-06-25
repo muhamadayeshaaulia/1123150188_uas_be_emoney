@@ -13,6 +13,9 @@ type Transaction struct {
 	gorm.Model
 	AccountID     uint    `gorm:"not null;index" json:"account_id"`
 	Amount        float64 `gorm:"type:decimal(15,2)" json:"amount"`
+	TotalAmount   float64 `gorm:"type:decimal(15,2)" json:"total_amount"`
+	InvoiceID     string  `gorm:"type:varchar(50);index" json:"invoice_id"`
+	Status        string  `gorm:"type:varchar(20);default:'SUCCESS'" json:"status"`
 	Type          string  `gorm:"type:varchar(10)" json:"type"` // "debit" | "credit"
 	Description   string  `gorm:"type:varchar(255)" json:"description"`
 	BalanceBefore float64 `gorm:"type:decimal(15,2)" json:"balance_before"`
