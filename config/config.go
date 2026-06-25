@@ -41,7 +41,7 @@ func Load() *Config {
 	jwtExpiry, _ := strconv.Atoi(getEnv("JWT_EXPIRY_HOURS", "24"))
 
 	return &Config{
-		Port:             getEnv("PORT", "8080"),
+		Port:             getEnv("PORT", "8081"),
 		DBHost:           getEnv("DB_HOST", "localhost"),
 		DBPort:           getEnv("DB_PORT", "3306"),
 		DBUser:           getEnv("DB_USER", "root"),
